@@ -51,14 +51,6 @@ def update_lambda_code(bucket_name, function_name, s3, lamb):
     zip_local = 'lambda_code.zip'
     zip_remote = 'app_runner/lambda_code.zip'
 
-    # Substitute GitHub credentials into EC2 init script...
-    with open('ec2_init.sh', 'r') as file:
-        txt = file.read()
-        txt = txt.replace('<git_user>', 'put_user_here')
-        txt = txt.replace('<git_pass>', 'put_pass_here!')
-    with open('ec2_init.sh', 'w') as file:
-        file.write(txt)
-
     # Package
     with zipfile.ZipFile(zip_local, 'w') as zip:
         zip.write('ec2_init.sh', 'ec2_init.sh')
