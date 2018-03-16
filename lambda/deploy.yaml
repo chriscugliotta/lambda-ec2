@@ -8,7 +8,7 @@ Resources:
     Properties:
       BucketName: !Sub demo-bucket-${AWS::AccountId}
       NotificationConfiguration:
-        LambdaConfigurations:
+        LambdaConfigurations: # Why?  This causes our S3 bucket to invoke our Lambda function, whenever a file is uploaded.
           - Function: !GetAtt DemoLambdaFunction.Arn
             Event: "s3:ObjectCreated:*"
             Filter:
@@ -19,7 +19,7 @@ Resources:
                   - Name: suffix
                     Value: .zip
 
-  DemoLambdaExecutionRole:
+  DemoLambdaExecutionRole: # Why?  During execution, every Lambda function MUST assume a role, which determines its permissions.
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -30,22 +30,22 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-        - arn:aws:iam::aws:policy/IAMFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess # Why?  So we can launch EC2 instances.
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess # Why?  So our log messages appear on CloudWatch.
+        - arn:aws:iam::aws:policy/IAMFullAccess # Why?  So we can launch EC2 instances with auto-generated, temporary AWSCLI access keys.
 
   DemoLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Handler: ec2_run.handler
       Role: !GetAtt DemoLambdaExecutionRole.Arn
-      Code:
+      Code: # Why?  The code below is a placeholder.  We will replace it later.  See deploy.py.
         ZipFile: |
           def handler(event, context):
-              print('hello world')
+              pass
       Runtime: python3.6
 
-  DemoLambdaInvokePermission:
+  DemoLambdaInvokePermission: # Why?  Here, Lambda is basically saying, 'S3, I give you permission to invoke me.'
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt DemoLambdaFunction.Arn
@@ -59,13 +59,13 @@ Resources:
     Properties:
       GroupName: demo-security-group
       GroupDescription: Enables inbound SSH traffic.
-      SecurityGroupIngress:
+      SecurityGroupIngress: # Why?  '0.0.0.0/0' is a wildcard.  So, we saying that ANY IP address can SSH into our EC2.
         - CidrIp: 0.0.0.0/0
           FromPort: 22
           IpProtocol: tcp
           ToPort: 22
 
-  DemoEC2Role:
+  DemoEC2Role: # Why?  Determines what our EC2 instance is allowed to do via AWSCLI.  In this case, we permit S3 access.
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -78,7 +78,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
-  DemoInstanceProfile:
+  DemoInstanceProfile: # Why?  So our EC2 is launched with auto-generated, temporary AWSCLI access keys.
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:

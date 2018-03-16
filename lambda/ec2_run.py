@@ -41,6 +41,10 @@ if __name__ == '__main__':
     be used as an entry point for manual tests, e.g. during PyCharm development.
     """
 
+    # Specify a named profile
+    # (If you never set up any named profiles, you can comment this out.)
+    boto3.setup_default_session(profile_name='personal')
+
     # Mock event object
     event = {
         'Records': [{
