@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Temporary, on-demand EC2 instances.
+Resources:
+
+  DemoBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub demo-bucket-${AWS::AccountId}
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Function: !GetAtt DemoLambdaFunction.Arn
+            Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: app_runner/input/
+                  - Name: suffix
+                    Value: .zip
+
+  DemoLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/IAMFullAccess
+
+  DemoLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: ec2_run.handler
+      Role: !GetAtt DemoLambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print('hello world')
+      Runtime: python3.6
+
+  DemoLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt DemoLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub arn:aws:s3:::demo-bucket-${AWS::AccountId}
+
+  DemoSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: demo-security-group
+      GroupDescription: Enables inbound SSH traffic.
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+
+  DemoEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  DemoInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref DemoEC2Role
+      InstanceProfileName: demo-instance-profile
+
+Outputs:
+  DemoBucketArn:
+    Value: !GetAtt DemoBucket.Arn
+  DemoLambdaFunctionArn:
+    Value: !GetAtt DemoLambdaFunction.Arn

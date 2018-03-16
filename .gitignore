@@ -1,0 +1,11 @@
+# Ignore log files
+*.log
+
+# Ignore SSH keys
+*.pem
+*.ppk
+
+# Ignore hidden folders
+.idea/
+.ipynb_checkpoints/
+__pycache__/
